@@ -1,14 +1,15 @@
 const User = require ('../models/user')
+const Profile = require ("../models/profile")
 const bcryptjs = require('bcryptjs')
 const asyncHandler = require("express-async-handler")
 const generateToken = require("../utils/generateToken")
+const {createUserName} = require("../utils/generateUsername")
 const registerUser = asyncHandler(async(req,res)=>{
- const {username,email,password}= req.body
+ const {firstName,lastName, phoneNumber,email,password}= req.body
 
-if(!username  || !email || !password){
+if(!firstName || !lastName ||!phoneNumber  || !email || !password){
     res.status(400);
     throw new Error("Please fill in all fields");
-
 }
 
 const existingUser = await User.findOne({email})
@@ -19,17 +20,27 @@ if(existingUser){
 }
 
 const hashedPassword = await bcryptjs.hash(password, 10)
-
 const user = await User.create({
-    username,
+     firstName,
+     lastName,
+     phoneNumber,
     email,
     password:hashedPassword
 })
 
-if (user) {
+const profile = await  new Profile({
+    user: user._id,
+    username : createUserName(user.firstName)
+})
+
+await profile.save()
+
+if (user && profile) {
     res.status(201).json({
         _id: user._id,
-        username: user.username,
+        username: profile.username,
+        profilePic: profile.profilePic,
+        profileId: profile._id,
         email: user.email,
     })}else{
         res.status(400);
@@ -86,9 +97,9 @@ const getUserProfile = asyncHandler(async (req, res) => {
     const user= await User.findById(req.user._id);
 
     if (user) {
+        res.status(200)
       res.json({
         _id: user._id,
-        username: user.username,
         email: user.email,
       });
     } else {
