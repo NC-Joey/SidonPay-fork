@@ -2,7 +2,7 @@ const express = require("express")
 const dotenv = require("dotenv").config()
 const db = require('./config/db')
 const cookieParser = require("cookie-parser")
-const userRoute = require("./routes/userRoutes")
+const authRoute = require("./routes/authRoutes")
 const profileRoute = require("./routes/profileRoutes")
 const errorHandler = require('./middleware/errorhandler')
 // initialize the app
@@ -20,7 +20,7 @@ app.use(express.urlencoded({
 }))
 app.use(cookieParser())
 // routes
-app.use('/api/user', userRoute)
+app.use('/api/user', authRoute)
 app.use('/api/profile', profileRoute)
 
 // initialize the server 

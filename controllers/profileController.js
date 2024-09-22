@@ -68,6 +68,6 @@ res.status(200).json({
 })
 
 module.exports={
-    updateProfilePic ,
+    updateProfilePic,
     getProfile
 }
