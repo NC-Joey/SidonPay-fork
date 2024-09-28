@@ -67,7 +67,55 @@ res.status(200).json({
 
 })
 
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const { id } = req.params;
+  const { username } = req.body;
+
+ 
+  if (req.user._id.toString() !== id) {
+    return res.status(403).json({ message: 'Not authorized to update this profile' });
+  }
+
+  if(!username){
+    throw new Error("Please fill in all Fields")
+  }
+
+  try {
+
+    const profile = await Profile.findOne({ user: id });
+
+    if (!profile) {
+      return res.status(404).json({ message: 'Profile not found' });
+    }
+
+   
+    if (username) profile.username = username;
+
+    await profile.save();
+    console.log(profile.username)
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      profile: {
+        id: profile._id,
+        username: profile.username,
+        profilePic: profile.profilePic,
+      },
+    });
+  } catch (error) {
+    console.error('Error updating profile:', error);
+    res.status(500).json({
+      message: 'Something went wrong while updating the profile',
+      error: error.message,
+    });
+  }
+});
+
+
+
 module.exports={
     updateProfilePic,
-    getProfile
+    getProfile,
+    updateProfile
 }
