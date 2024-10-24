@@ -5,6 +5,7 @@ const cookieParser = require("cookie-parser")
 const authRoute = require("./routes/authRoutes")
 const profileRoute = require("./routes/profileRoutes")
 const errorHandler = require('./middleware/errorhandler')
+const kycRoute = require("./routes/kycRoute")
 // initialize the app
 const app = express()
 
@@ -20,9 +21,14 @@ app.use(express.urlencoded({
 }))
 app.use(cookieParser())
 // routes
-app.use('/api/user', authRoute)
+app.use('/api/auth', authRoute)
 app.use('/api/profile', profileRoute)
+app.use("/api/kyc",kycRoute)
 
+
+app.get('/', (req,res)=>{
+    res.send("welcome to our server")
+})
 // initialize the server 
 app.listen(5000, ()=>{
     console.log("server running ")
