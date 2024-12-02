@@ -1,40 +1,214 @@
-const axios = require('axios');
+const axios = require("axios");
+const asyncHandler = require("express-async-handler");
+const Account = require("../models/account");
+const User = require("../models/user");
+const BASE_URL = process.env.ANCHOR_URL;
+const apiKey = process.env.ANCHOR_API;
 
-const createAccount = async () => {
-  const url = 'https://api.sandbox.getanchor.co/api/v1/accounts';
-  const apiKey = 'CpGcX.81ba6d12e952a6734d59c99a71786580e79a00e84d39fd977fff2454e568c09f76a2982464f0921da61f45c5e1912420ddf8';
+const createAccount = asyncHandler(async (req, res) => {
+  const {
+    firstName,
+    lastName,
+    middleName,
+    email,
+    phoneNumber,
+    addressLine_1,
+    addressLine_2,
+    city,
+    state,
+    postalCode,
+    dateOfBirth,
+    bvn,
+    gender,
+    selfieImage,
+    description,
+    doingBusinessAs,
 
-  const data = {
-    data: {
-      attributes: {
-        productName: 'SAVINGS'
-      },
-      relationships: {
-        customer: {
-          data: {
-            id: '173065499172115-anc_ind_cst',
-            type: 'IndividualCustomer'
-          }
-        }
-      },
-      type: 'DepositAccount'
-    }
-  };
+    isSoleProprietor,
+  } = req.body;
+
+  // Validate that the user exists and is verified
+  const user = await User.findById(req.user._id);
+  if (!user || !user.isVerified) {
+    return res.status(404).json({
+      message: "User not found or User not Verified",
+    });
+  }
+
+  if (user.account) {
+    return res.status(401).json({
+      message: "User  already have an account",
+    });
+  }
 
   try {
-    const response = await axios.post(url, data, {
-      headers: {
-        'accept': 'application/json',
-        'content-type': 'application/json',
-        'x-anchor-key': apiKey
-      }
-    });
-    console.log('Account created:', response.data);
-  } catch (error) {
-    console.error('Error creating account:', error.message);
-  }
-};
+    // Construct request payload
+    const payload = {
+      data: {
+        type: "IndividualCustomer",
+        attributes: {
+          fullName: {
+            firstName,
+            lastName,
+            middleName,
+          },
+          email,
+          phoneNumber,
+          address: {
+            addressLine_1,
+            addressLine_2,
+            city,
+            state,
+            postalCode,
+            country: "NG",
+          },
+          identificationLevel2: {
+            dateOfBirth,
+            gender,
+            bvn,
+            selfieImage: selfieImage || null,
+          },
+          isSoleProprietor,
+          description,
+          doingBusinessAs,
+        },
+      },
+    };
 
-module.exports ={
-    createAccount
-}
+    // Make API request
+    const response = await axios.post(`${BASE_URL}/api/v1/customers`, payload, {
+      headers: {
+        "Content-Type": "application/json",
+        "x-anchor-key": apiKey,
+      },
+    });
+
+    // Handle success
+
+    // save customer_id
+    const account = new Account({
+      user: req.user._id,
+      customer_id: response.data.data.id,
+    });
+    await account.save();
+
+    res.status(201).json({
+      message: "Account created successfully",
+      data: response.data,
+      customer_id: response.data.data.id,
+    });
+  } catch (error) {
+    console.error(
+      "Error creating account:",
+      error.response?.data || error.message || error
+    );
+    res.status(500).json({
+      message: "Failed to create account",
+      error: error.response?.data || error.message || "Unknown error occurred",
+    });
+  }
+});
+
+const deleteAllAccounts = asyncHandler(async (req, res) => {
+  try {
+    const deleteAccounts = await Account.deleteMany({});
+    return res.status(200).json({
+      message: "Accounts Deleted",
+    });
+  } catch (error) {
+    console.log(error);
+  }
+});
+
+const getAccount = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    if (!userId) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const findUserAccount = await Account.findOne({
+      user: userId,
+    }).populate({ path: "user", select: "-password" });
+
+    if (!findUserAccount) {
+      return res.status(404).json({
+        message: "No account found for the user",
+      });
+    }
+
+    res.status(200).json({
+      message: "Account retrieved successfully",
+      account: findUserAccount,
+    });
+  } catch (error) {
+    console.error("Error retrieving account:", error.message);
+
+    res.status(500).json({
+      message: "Failed to retrieve account",
+      error: error.message,
+    });
+  }
+});
+
+const getCustomerFromAnchor = asyncHandler(async (req, res) => {
+  try {
+    const userId = req.user._id;
+
+    if (!userId) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const getUser = await User.findOne({
+      _id: userId,
+    });
+
+    if (!getUser) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const customer_id = getUser.customer_id;
+
+    // Make API request
+    const response = await axios.get(
+      `${BASE_URL}/api/v1/customers/${customer_id}?include=IndividualCustomer`,
+      {
+        headers: {
+          "Content-Type": "application/json",
+          "x-anchor-key": apiKey,
+        },
+      }
+    );
+
+    res.status(200).json({
+      message: "Customer Fetched  successfully",
+      data: response.data,
+    });
+  } catch (error) {
+    console.error(
+      "Error getting account:",
+      error.response?.data || error.message || error
+    );
+    res.status(500).json({
+      message: "Failed to get account",
+      error: error.response?.data || error.message || "Unknown error occurred",
+    });
+  }
+});
+
+const verifyCustomerFromAnchor = asyncHandler(async (req, res) => {});
+
+module.exports = {
+  createAccount,
+  deleteAllAccounts,
+  getCustomerFromAnchor,
+  verifyCustomerFromAnchor,
+  getAccount,
+};
