@@ -1,0 +1,38 @@
+
+"data": {
+    "id": "17332470646350-anc_acc",
+    "type": "DepositAccount",
+    "attributes": {
+      "createdAt": "2024-12-03T17:31:04.639688628",
+      "bank": {
+        "id": "16565854883910-anc_bk",
+        "name": "CORESTEP MICROFINANCE BANK",
+        "cbnCode": "",
+        "nipCode": "090365"
+      },
+      "accountName": "Okoro Tunde James",
+      "frozen": false,
+      "currency": "NGN",
+      "accountNumber": "******9631",
+      "type": "SAVINGS",
+      "status": "ACTIVE"
+    },
+    "relationships": {
+      "accountNumbers": {
+        "data": []
+      },
+      "subAccounts": {
+        "data": []
+      },
+      "virtualNubans": {
+        "data": []
+      },
+      "customer": {
+        "data": {
+          "id": "17331759355931-anc_ind_cst",
+          "type": "IndividualCustomer"
+        }
+      }
+    }
+  }
+}
